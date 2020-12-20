@@ -36,13 +36,13 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
       'application:new-file': -> ipcRenderer.send('command', 'application:new-file')
       'application:open': ->
         defaultPath = atom.workspace.getActiveTextEditor()?.getPath() ? atom.project.getPaths()?[0]
-        ipcRenderer.send('open-chosen-any', defaultPath)
+        ipcRenderer.send('open-command', 'application:open', defaultPath)
       'application:open-file': ->
         defaultPath = atom.workspace.getActiveTextEditor()?.getPath() ? atom.project.getPaths()?[0]
-        ipcRenderer.send('open-chosen-file', defaultPath)
+        ipcRenderer.send('open-command', 'application:open-file', defaultPath)
       'application:open-folder': ->
         defaultPath = atom.workspace.getActiveTextEditor()?.getPath() ? atom.project.getPaths()?[0]
-        ipcRenderer.send('open-chosen-folder', defaultPath)
+        ipcRenderer.send('open-command', 'application:open-folder', defaultPath)
       'application:open-dev': -> ipcRenderer.send('command', 'application:open-dev')
       'application:open-safe': -> ipcRenderer.send('command', 'application:open-safe')
       'application:add-project-folder': -> atom.addProjectFolder()
@@ -122,6 +122,8 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
   commandRegistry.add(
     'atom-text-editor',
     stopEventPropagation({
+      'core:undo': -> @undo()
+      'core:redo': -> @redo()
       'core:move-left': -> @moveLeft()
       'core:move-right': -> @moveRight()
       'core:select-left': -> @selectLeft()
@@ -165,34 +167,14 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
   )
 
   commandRegistry.add(
-    'atom-text-editor:not([readonly])',
-    stopEventPropagation({
-      'core:undo': -> @undo()
-      'core:redo': -> @redo()
-    }),
-    false
-  )
-
-  commandRegistry.add(
     'atom-text-editor',
-    stopEventPropagationAndGroupUndo(
-      config,
-      {
-        'core:copy': -> @copySelectedText()
-        'editor:copy-selection': -> @copyOnlySelectedText()
-      }
-    ),
-    false
-  )
-
-  commandRegistry.add(
-    'atom-text-editor:not([readonly])',
     stopEventPropagationAndGroupUndo(
       config,
       {
         'core:backspace': -> @backspace()
         'core:delete': -> @delete()
         'core:cut': -> @cutSelectedText()
+        'core:copy': -> @copySelectedText()
         'core:paste': -> @pasteText()
         'editor:paste-without-reformatting': -> @pasteText({
           normalizeLineEndings: false,
@@ -213,6 +195,7 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
         'editor:transpose': -> @transpose()
         'editor:upper-case': -> @upperCase()
         'editor:lower-case': -> @lowerCase()
+        'editor:copy-selection': -> @copyOnlySelectedText()
       }
     ),
     false
@@ -273,7 +256,6 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
         @foldAllAtIndentLevel(8)
         @scrollToCursorPosition()
       'editor:log-cursor-scope': -> showCursorScope(@getCursorScope(), notificationManager)
-      'editor:log-cursor-syntax-tree-scope': -> showSyntaxTree(@getCursorSyntaxTreeScope(), notificationManager)
       'editor:copy-path': -> copyPathToClipboard(this, project, clipboard, false)
       'editor:copy-project-path': -> copyPathToClipboard(this, project, clipboard, true)
       'editor:toggle-indent-guide': -> config.set('editor.showIndentGuide', not config.get('editor.showIndentGuide'))
@@ -284,7 +266,7 @@ module.exports = ({commandRegistry, commandInstaller, config, notificationManage
   )
 
   commandRegistry.add(
-    'atom-text-editor:not([mini]):not([readonly])',
+    'atom-text-editor:not([mini])',
     stopEventPropagationAndGroupUndo(
       config,
       {
@@ -332,13 +314,6 @@ showCursorScope = (descriptor, notificationManager) ->
   list = descriptor.scopes.toString().split(',')
   list = list.map (item) -> "* #{item}"
   content = "Scopes at Cursor\n#{list.join('\n')}"
-
-  notificationManager.addInfo(content, dismissable: true)
-
-showSyntaxTree = (descriptor, notificationManager) ->
-  list = descriptor.scopes.toString().split(',')
-  list = list.map (item) -> "* #{item}"
-  content = "Syntax tree at Cursor\n#{list.join('\n')}"
 
   notificationManager.addInfo(content, dismissable: true)
 

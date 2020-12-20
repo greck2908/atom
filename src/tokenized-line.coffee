@@ -10,25 +10,21 @@ class TokenizedLine
 
     return unless properties?
 
-    {@openScopes, @text, @tags, @ruleStack, @tokenIterator, @grammar, tokens} = properties
-    @cachedTokens = tokens
+    {@openScopes, @text, @tags, @ruleStack, @tokenIterator, @grammar} = properties
 
   getTokenIterator: -> @tokenIterator.reset(this)
 
   Object.defineProperty @prototype, 'tokens', get: ->
-    if @cachedTokens
-      @cachedTokens
-    else
-      iterator = @getTokenIterator()
-      tokens = []
+    iterator = @getTokenIterator()
+    tokens = []
 
-      while iterator.next()
-        tokens.push(new Token({
-          value: iterator.getText()
-          scopes: iterator.getScopes().slice()
-        }))
+    while iterator.next()
+      tokens.push(new Token({
+        value: iterator.getText()
+        scopes: iterator.getScopes().slice()
+      }))
 
-      tokens
+    tokens
 
   tokenAtBufferColumn: (bufferColumn) ->
     @tokens[@tokenIndexAtBufferColumn(bufferColumn)]

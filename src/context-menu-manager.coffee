@@ -5,8 +5,6 @@ fs = require 'fs-plus'
 {Disposable} = require 'event-kit'
 {remote} = require 'electron'
 MenuHelpers = require './menu-helpers'
-{sortMenuItems} = require './menu-sort-helpers'
-_ = require 'underscore-plus'
 
 platformContextMenu = require('../package.json')?._atomMenu?['context-menu']
 
@@ -151,7 +149,7 @@ class ContextMenuManager
     @pruneRedundantSeparators(template)
     @addAccelerators(template)
 
-    return @sortTemplate(template)
+    template
 
   # Adds an `accelerator` property to items that have key bindings. Electron
   # uses this property to surface the relevant keymaps in the context menu.
@@ -159,15 +157,8 @@ class ContextMenuManager
     for id, item of template
       if item.command
         keymaps = @keymapManager.findKeyBindings({command: item.command, target: document.activeElement})
-        keystrokes = keymaps?[0]?.keystrokes
-        if keystrokes
-          # Electron does not support multi-keystroke accelerators. Therefore,
-          # when the command maps to a multi-stroke key binding, show the
-          # keystrokes next to the item's label.
-          if keystrokes.includes(' ')
-            item.label += " [#{_.humanizeKeystroke(keystrokes)}]"
-          else
-            item.accelerator = MenuHelpers.acceleratorForKeystroke(keystrokes)
+        accelerator = MenuHelpers.acceleratorForKeystroke(keymaps?[0]?.keystrokes)
+        item.accelerator = accelerator if accelerator
       if Array.isArray(item.submenu)
         @addAccelerators(item.submenu)
 
@@ -183,13 +174,6 @@ class ContextMenuManager
       else
         keepNextItemIfSeparator = true
         index++
-
-  sortTemplate: (template) ->
-    template = sortMenuItems(template)
-    for id, item of template
-      if Array.isArray(item.submenu)
-        item.submenu = @sortTemplate(item.submenu)
-    return template
 
   # Returns an object compatible with `::add()` or `null`.
   cloneItemForEvent: (item, event) ->

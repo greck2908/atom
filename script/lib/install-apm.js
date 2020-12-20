@@ -1,15 +1,14 @@
-'use strict';
+'use strict'
 
-const childProcess = require('child_process');
+const childProcess = require('child_process')
 
-const CONFIG = require('../config');
+const CONFIG = require('../config')
 
-module.exports = function(ci) {
-  console.log('Installing apm');
-  // npm ci leaves apm with a bunch of unmet dependencies
+module.exports = function () {
+  console.log('Installing apm')
   childProcess.execFileSync(
     CONFIG.getNpmBinPath(),
     ['--global-style', '--loglevel=error', 'install'],
-    { env: process.env, cwd: CONFIG.apmRootPath }
-  );
-};
+    {env: process.env, cwd: CONFIG.apmRootPath}
+  )
+}
